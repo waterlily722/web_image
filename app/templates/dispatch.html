@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分发影像</title>
+    <style>
+        /* 整体布局居中 */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0;
+            text-align: center; 
+            font-size: 24px; 
+            background-color: #f4f4f4; 
+        }
+
+        h1 {
+            font-size: 36px; 
+            margin-bottom: 65px;
+        }
+
+        button {
+            padding: 20px;
+            background-color: #fae98b;
+            color: black;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 24px;
+            margin-bottom: 45px;
+        }
+
+        button:hover {
+            background-color: #f5df3a;
+        }
+
+        .logout-btn {
+            padding: 10px 30px;
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            margin-top: 65px;
+        }
+
+        .logout-btn:hover {
+            background-color: #c9302c;
+        }
+
+        .back-btn {
+            padding: 20px;
+            background-color: #65cae9c6;
+            color: black;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 24px;
+            margin-bottom: 45px;
+        }
+
+        .back-btn:hover {
+            background-color: #5abfdef4;
+        }
+    </style>
+</head>
+<body>
+    <h1>已完成该影像校对</h1>
+
+    <!-- 返回按钮 -->
+    <form method="GET" action="{{ url_for('image', data_id = data_id)}}">
+        <button type="submit" class="back-btn"><strong>返回当前校对影像</strong></button>
+    </form>
+
+    <!-- 下一张影像 -->
+    <form method="POST" action="{{ url_for('dispatch_image') }}">
+        <button type="submit"><strong>继续校对下一张影像</strong></button>
+    </form>
+
+    <!-- 退出登录 -->
+    <form method="GET" action="{{ url_for('logout') }}">
+        <button type="submit" class="logout-btn">退出登录</button>
+    </form>
+</body>
+</html>

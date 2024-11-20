@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>页面未找到</title>
+    <style>
+        /* 整体布局居中 */
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0;
+            text-align: center; 
+            font-size: 24px; 
+            background-color: #f4f4f4; 
+        }
+
+        h1 {
+            font-size: 36px; 
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 24px; 
+            margin-bottom: 20px;
+        }
+
+        a {
+            font-size: 20px; 
+            color: #007bff; 
+            text-decoration: none; 
+        }
+
+        a:hover {
+            text-decoration: underline; 
+        }
+        .logout-btn {
+            padding: 10px 30px;
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+            margin-top: 65px;
+        }
+
+        .logout-btn:hover {
+            background-color: #c9302c;
+        }
+    </style>
+</head>
+<body>
+    <h1>错误 404</h1>
+    <strong><p>{{ error_message }}</p></strong>
+    <br>
+    <a href="{{ referer_url if referer_url else 'javascript:history.back()' }}">返回上一页</a>
+    <form method="GET" action="{{ url_for('logout') }}">
+        <button type="submit" class="logout-btn">退出登录</button>
+    </form>
+    <!-- <br>
+    <a href="{{ url_for('index') }}">返回首页</a> -->
+</body>
+</html>
