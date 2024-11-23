@@ -248,7 +248,44 @@ def backup_data_as_json(data, output_file):
 
 if __name__ == '__main__':
     # create_table()  
-    json_data = load_data_from_json('/home/web_image/sampled_data_new/image_analysis_update.json')  
-    # backup_data_as_json(json_data, '/home/web_image/sampled_data_new/image_analysis_update.json')
+    json_data = load_data_from_json('/home/web_image/sampled_data/image_analysis_update.json')  
+    # backup_data_as_json(json_data, '/home/web_image/sampled_data/image_analysis_update.json')
     insert_data_into_db(json_data)  
     # export_data('/home/web_image/sample/output.json')
+
+
+# ALTER TABLE image_analysis
+# ADD COLUMN start_time DATETIME DEFAULT NULL,
+# ADD COLUMN end_time DATETIME DEFAULT NULL,
+# ADD COLUMN time_diff INT DEFAULT 0,  
+# ADD COLUMN label_count INT DEFAULT 0; 
+
+# DELIMITER $$
+
+# -- 在状态变为 labeling 时，设置 start_time
+# CREATE TRIGGER before_status_labeling
+# BEFORE UPDATE ON image_analysis
+# FOR EACH ROW
+# BEGIN
+#     IF NEW.status = 'labeling' AND OLD.status != 'labeling' THEN
+#         SET NEW.start_time = NOW();
+#     END IF;
+# END$$
+
+# CREATE TRIGGER before_status_labeled
+# BEFORE UPDATE ON image_analysis
+# FOR EACH ROW
+# BEGIN
+#     IF NEW.status = 'labeled' AND OLD.status != 'labeled' THEN
+#         SET NEW.end_time = NOW();
+#         -- 检查 start_time 是否设置且与当前时间间隔大于 3 秒
+#         IF NEW.start_time IS NOT NULL AND TIMESTAMPDIFF(SECOND, NEW.start_time, NEW.end_time) > 3 THEN
+#             -- 累积时间差
+#             SET NEW.time_diff = TIMESTAMPDIFF(SECOND, NEW.start_time, NEW.end_time) + OLD.time_diff;
+#             -- 增加标注次数
+#             SET NEW.label_count = OLD.label_count + 1;
+#         END IF;
+#     END IF;
+# END$$
+
+# DELIMITER ;
