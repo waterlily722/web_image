@@ -253,8 +253,8 @@ def image(data_id):
 # 更新推理和答案，并跳转到上一张图片
 @app.route('/update_previous', methods=['POST'])
 def update_previous():
-    new_question = request.form['question']
-    new_rationale = request.form['rationale']
+    # new_question = request.form['question']
+    # new_rationale = request.form['rationale']
     new_answer = request.form.getlist('answer')  # 获取所有选中的答案（复选框）
     if new_answer:
         new_answer = ','.join(new_answer)  # 将选中的答案列表转换为逗号分隔的字符串
@@ -290,8 +290,8 @@ def update_previous():
 # 修改推理和答案，并跳转到下一张图片
 @app.route('/update_next', methods=['POST'])
 def update_next():
-    new_question = request.form['question']
-    new_rationale = request.form['rationale']
+    # new_question = request.form['question']
+    # new_rationale = request.form['rationale']
     new_answer = request.form.getlist('answer')  # 获取所有选中的答案（复选框）
     if new_answer:
         new_answer = ','.join(new_answer)  # 将选中的答案列表转换为逗号分隔的字符串
