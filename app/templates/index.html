@@ -70,7 +70,7 @@
                 display: inline-block;
                 margin-right: 10px; /* 控制每个单选框或复选框之间的距离 */
                 margin-bottom: 10px; /* 控制选项之间的垂直间距 */
-                font-size: 18px; /* 设置文本大小 */
+                font-size: 20px; /* 设置文本大小 */
             }
             
             /* 控制复选框的布局 */
@@ -90,25 +90,30 @@
             
             /* 按钮容器居中 */
             .button-group {
-                margin-top: 3%;
+                margin-top: 20%;
                 display: flex;
                 justify-content: space-between;
-                width: 100%;
+                width: 92%;
             }
     
             .button-group button {
                 width: 40%;
                 padding: 12px 12px;
-                font-size: 16px;
+                font-size: 20px;
                 cursor: pointer;
             }
     
             .button-group button:hover {
                 background-color: #c8c7c7;
             }
-    
+            
+            h1 {
+                margin-top: 12%;
+                font-size: 40px; 
+            }
+
             p {
-                font-size: 18px;
+                font-size: 20px;
                 margin-bottom: 8px;
                 text-align: left;
             }
@@ -131,13 +136,7 @@
             }
             
             h1 {
-                font-size: 24px; 
-                text-align: center;
-            }
-            
-            p {
-                font-size: 14px;
-                margin-bottom: 8px;
+                font-size: 30px; 
                 text-align: center;
             }
 
@@ -226,26 +225,25 @@
     <!-- 右侧内容 -->
     <div class="content">
         <h1>影像校对</h1>
-
         {% if image_data %}
             <p><strong>ID:</strong> {{ image_data['original_id'] }} {{ get_ratio(image_data['image_id'], session['position']) }}</p>
             <p><strong>问题:</strong> {{ image_data['question'] }}</p>
-            <p><strong>推理:</strong> {{ image_data['rationale'] }}</p>
+            <!-- <p><strong>推理:</strong> {{ image_data['rationale'] }}</p> -->
             <p><strong>答案:</strong> {{ image_data['answer'] }}</p>
 
             <!-- 表单：修改推理和答案 -->
             <form id="update-form" method="POST">
                 <input type="hidden" name="image_id" value="{{ image_data['id'] }}">
 
-                <div class="form-group">
+                <!-- <div class="form-group">
                     <label for="question" class="no-wrap"><strong>修改问题:</strong></label>
                     <textarea name="question" id="question">{{ image_data['updated_question'] }}</textarea>
-                </div>
+                </div> -->
 
-                <div class="form-group">
+                <!-- <div class="form-group">
                     <label for="rationale" class="no-wrap"><strong>修改推理:</strong></label>
                     <textarea name="rationale" id="rationale">{{ image_data['updated_rationale'] }}</textarea>
-                </div>
+                </div> -->
 
                 <!-- 修改答案部分 -->
                 <div class="form-group">
