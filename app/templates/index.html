@@ -90,7 +90,7 @@
             
             /* 按钮容器居中 */
             .button-group {
-                margin-top: 20%;
+                margin-top: 10%;
                 display: flex;
                 justify-content: space-between;
                 width: 92%;
@@ -108,7 +108,7 @@
             }
             
             h1 {
-                margin-top: 12%;
+                margin-top: 8%;
                 font-size: 40px; 
             }
 
@@ -226,13 +226,14 @@
     <div class="content">
         <h1>影像校对</h1>
         {% if image_data %}
+            <p><strong>当前标注数量:</strong> {{ user_data['amount'] }}</p>
             <p><strong>ID:</strong> {{ image_data['original_id'] }} {{ get_ratio(image_data['image_id'], session['position']) }}</p>
             <p><strong>问题:</strong> {{ image_data['question'] }}</p>
             <!-- <p><strong>推理:</strong> {{ image_data['rationale'] }}</p> -->
             <p><strong>答案:</strong> {{ image_data['answer'] }}</p>
 
             <!-- 表单：修改推理和答案 -->
-            <form id="update-form" method="POST">
+            <form id="update-form" method="POST" onsubmit="return validateForm()">
                 <input type="hidden" name="image_id" value="{{ image_data['id'] }}">
 
                 <!-- <div class="form-group">
@@ -255,7 +256,6 @@
                                 <input type="radio" name="answer" value="{{ option }}" {% if image_data['updated_answer'] == option %}checked{% endif %}>
                                 {{ option }}
                             </label>
-                            
                         {% endfor %}
                     {% elif image_data['original_id'] and image_data['original_id'].startswith('mal') %}
                         <!-- mal 类型，根据 type 字段显示更多选项 -->
@@ -284,43 +284,93 @@
                         <textarea name="answer" id="answer">{{ image_data['updated_answer'] }}</textarea>
                     {% endif %}
                 </div>
-
+                <!-- 置信度 -->
+                <div class="form-group">
+                    <label for="confidence_level" class="no-wrap"><strong>诊断结果置信度:</strong></label>
+                    {% for option in ['高', '中', '低'] %}
+                        <label>
+                            <input type="radio" name="confidence_level" value="{{ option }}" {% if image_data['confidence_level'] == option %}checked{% endif %}>
+                            {{ option }}
+                            </label>  
+                    {% endfor %}
+                </div>
             </form>
 
             <br>
             <!-- 翻页按钮：显示下一张或上一张图片 -->
             <div class="button-group">
-                <button type="button" onclick="navigateImage('previous')">上一张</button>
-                <button type="button" onclick="navigateImage('next')">下一张</button>
+                <button type="button" onclick="navigateImage('previous')">上一条</button>
+                <button type="button" onclick="navigateImage('next')">下一条</button>
             </div>
         {% else %}
-            <p>No image data available.</p>
+            <p>暂无影像</p>
         {% endif %}
     </div>
     
     <script>
+        function validateForm() {
+            const answerRadios = document.querySelectorAll('input[name="answer"]');
+            const confidenceRadios = document.querySelectorAll('input[name="confidence_level"]');
+            let answerSelected = false;
+            let confidenceSelected = false;
+        
+            // 检查答案是否被选择
+            for (const radio of answerRadios) {
+                if (radio.checked) {
+                    answerSelected = true;
+                    break;
+                }
+            }
+        
+            // 检查置信度是否被选择
+            for (const radio of confidenceRadios) {
+                if (radio.checked) {
+                    confidenceSelected = true;
+                    break;
+                }
+            }
+        
+            if (!answerSelected) {
+                alert("请选择答案！");
+                return false; // 禁止提交表单
+            }
+        
+            if (!confidenceSelected) {
+                alert("请选择置信度！");
+                return false; // 禁止提交表单
+            }
+        
+            return true; // 允许提交表单
+        }
+        
         // 动态修改表单的 action 路由
         function navigateImage(direction) {
             var form = document.getElementById('update-form');
+        
+            // 调用验证函数
+            if (!validateForm()) {
+                return; // 如果验证未通过，停止执行
+            }
+        
             var imageId = form.querySelector('input[name="image_id"]').value;
-
+        
             // 根据方向设置不同的表单提交 URL
             if (direction === 'previous') {
                 form.action = "{{ url_for('update_previous') }}";
             } else if (direction === 'next') {
                 form.action = "{{ url_for('update_next') }}";
             }
-
+        
             // 提交表单
             form.submit();
         }
+
         document.addEventListener("DOMContentLoaded", function() {
             const checkboxes = document.querySelectorAll('.answer-checkbox');
             
             const exclusiveGroups = [
                 ['上颌前突', '上颌发育不足'],
-                ['下颌前突', '下颌后缩'],
-                ['后牙锁合', '后牙反合']
+                ['下颌前突', '下颌后缩']
             ];
             
             // 事件监听器
