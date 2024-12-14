@@ -111,3 +111,61 @@ def get_ratio(image_id, position):
     finally:
         cursor.close()
         conn.close()
+
+def get_next_unlabeled_image(current_user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    last_image_id = None  
+
+    while True:
+        # 查询下一个未标记的图像，避免重复
+        query = """
+            SELECT * FROM image_data 
+            WHERE status = 'unlabeled'
+        """
+        if last_image_id is not None:
+            query += " AND id > %s"  
+
+        query += " ORDER BY id ASC LIMIT 1"
+
+        cursor.execute(query, (last_image_id,) if last_image_id is not None else ())
+        image_data = cursor.fetchone()
+
+        if not image_data:
+            cursor.close()
+            conn.close()
+            return None
+
+        image_id = image_data['id']
+        n = image_id // 11889
+        k = image_id % 11889
+        related_ids = []
+        if n != 1:
+            related_ids.append(1 * 11889 + k)
+        if n != 2:
+            related_ids.append(2 * 11889 + k)
+        if n != 3:
+            related_ids.append(3 * 11889 + k)
+
+        if related_ids:  
+            placeholders = ', '.join(['%s'] * len(related_ids))
+            cursor.execute(f"""
+                SELECT user_id FROM image_data 
+                WHERE id IN ({placeholders})
+            """, related_ids)
+            user_ids = cursor.fetchall()
+
+            # 检查 user_id 是否与当前用户相同
+            if all(user_id['user_id'] != current_user_id for user_id in user_ids):
+                last_image_id = image_id  
+                cursor.close()
+                conn.close()
+                return image_data
+        
+        last_image_id = image_id
+
+
+# if __name__ == '__main__':
+#     data = get_next_unlabeled_image(23)
+#     print(data['id'])

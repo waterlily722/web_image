@@ -90,5 +90,5 @@ def backup_data_as_json(input_file, output_file):
 
 if __name__ == '__main__':
     # create_image_table()
-    # backup_data_as_json('/home/web_image/sampled_data_new/image_analysis.json', '/home/web_image/sampled_data_new/image_update.json')
-    insert_image_table('/home/web_image/sampled_data_new/image_update.json')
+    # backup_data_as_json('/home/web_image/sampled_data/image_analysis_mal.json', '/home/web_image/sampled_data/image_mal_update.json')
+    insert_image_table('/home/web_image/sampled_data/image_mal_update.json')

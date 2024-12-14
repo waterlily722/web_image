@@ -39,6 +39,10 @@ def create_table():
         updated_rationale TEXT,                      -- 修改后的推理
         updated_answer VARCHAR(255),                 -- 修改后的答案
         status ENUM('unlabeled', 'labeling', 'labeled') DEFAULT 'unlabeled',  -- 状态
+        start_time DATETIME DEFAULT NULL,
+        end_time DATETIME DEFAULT NULL,
+        time_diff INT DEFAULT 0,  
+        label_count INT DEFAULT 0, 
         FOREIGN KEY (image_id) REFERENCES image_data(id) ON DELETE CASCADE  -- 关联 image_data 表
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
     """
@@ -245,11 +249,21 @@ def backup_data_as_json(data, output_file):
         json.dump(backup_list, f, ensure_ascii=False, indent=4)
     print(f"Backup successfully saved to {output_file}")
 
+def update_data(data, output_file):
+    filtered_data = [item for item in data if isinstance(item.get("id"), str) and item["id"].startswith("mal")]
+
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(filtered_data, f, ensure_ascii=False, indent=4)
+    
+    print(f"Successfully saved items to {output_file}")
+
+
 
 if __name__ == '__main__':
     # create_table()  
-    json_data = load_data_from_json('/home/web_image/sampled_data/image_analysis_update.json')  
-    # backup_data_as_json(json_data, '/home/web_image/sampled_data/image_analysis_update.json')
+    json_data = load_data_from_json('/home/web_image/sampled_data/image_analysis_mal_update_3.json') 
+    # update_data(json_data, '/home/web_image/sampled_data/image_analysis_mal.json') 
+    # backup_data_as_json(json_data, '/home/web_image/sampled_data/image_analysis_mal_update.json')
     insert_data_into_db(json_data)  
     # export_data('/home/web_image/sample/output.json')
 
@@ -262,6 +276,25 @@ if __name__ == '__main__':
 
 # DELIMITER $$
 
+# DROP TRIGGER IF EXISTS before_status_labeling$$
+
+# CREATE TRIGGER before_status_labeling
+# BEFORE UPDATE ON image_analysis
+# FOR EACH ROW
+# BEGIN
+#     IF NEW.status = 'labeling' AND OLD.status = 'unlabeled' THEN
+#         UPDATE user 
+#         SET amount = amount + 1 
+#         WHERE id = (SELECT user_id FROM image_data WHERE id = NEW.image_id);
+#     END IF;
+
+#     IF NEW.status = 'labeling' AND OLD.status != 'labeling' THEN
+#         SET NEW.start_time = NOW();
+#     END IF;
+# END$$
+
+# DELIMITER ;
+
 # -- 在状态变为 labeling 时，设置 start_time
 # CREATE TRIGGER before_status_labeling
 # BEFORE UPDATE ON image_analysis
@@ -272,14 +305,15 @@ if __name__ == '__main__':
 #     END IF;
 # END$$
 
+# DELIMITER $$
 # CREATE TRIGGER before_status_labeled
 # BEFORE UPDATE ON image_analysis
 # FOR EACH ROW
 # BEGIN
 #     IF NEW.status = 'labeled' AND OLD.status != 'labeled' THEN
 #         SET NEW.end_time = NOW();
-#         -- 检查 start_time 是否设置且与当前时间间隔大于 3 秒
-#         IF NEW.start_time IS NOT NULL AND TIMESTAMPDIFF(SECOND, NEW.start_time, NEW.end_time) > 3 THEN
+#         -- 检查 start_time 是否设置且与当前时间间隔大于 1 秒
+#         IF NEW.start_time IS NOT NULL AND TIMESTAMPDIFF(SECOND, NEW.start_time, NEW.end_time) > 1 THEN
 #             -- 累积时间差
 #             SET NEW.time_diff = TIMESTAMPDIFF(SECOND, NEW.start_time, NEW.end_time) + OLD.time_diff;
 #             -- 增加标注次数

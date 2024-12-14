@@ -1,6 +1,7 @@
 import mysql.connector
 import json
 import bcrypt
+import sys
 
 def hash_password(plain_password):
     # 生成盐值并加密密码
@@ -63,6 +64,10 @@ def insert_user(username, password, image_id=None, current_analysis_id=None, pos
     conn.close()
 
 if __name__ == '__main__':
-    create_user_table()
-    insert_user('admin', 'admin')
-    insert_user('test', 'test')
+    # create_user_table()
+    if len(sys.argv) > 1:
+        insert_user(sys.argv[1], sys.argv[2])
+    else:
+        insert_user("test", "test")
+    
+    
