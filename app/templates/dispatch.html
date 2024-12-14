@@ -72,6 +72,7 @@
 </head>
 <body>
     <h1>已完成该影像校对</h1>
+    <p><strong>当前标注数量:</strong> {{ user_data['amount'] + 1}}</p>
 
     <!-- 返回按钮 -->
     <form method="GET" action="{{ url_for('image', data_id = data_id)}}">
