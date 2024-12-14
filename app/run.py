@@ -1,9 +1,10 @@
 import argparse
 import mysql.connector
-from flask import Flask, request, render_template, redirect, url_for, session, flash, abort
+from werkzeug.security import check_password_hash as checkpw
+from flask import Flask, request, render_template, redirect, url_for, session, flash, abort, make_response
 from bcrypt import checkpw
-from web_env.get_data import get_image_data
-from web_env.data_tool import get_previous_image_id, get_next_image_id, get_mal_type_options, get_new_position, get_ratio
+from web_env.get_data import get_image_data, get_user_data
+from web_env.data_tool import get_previous_image_id, get_next_image_id, get_mal_type_options, get_new_position, get_ratio, get_next_unlabeled_image
 
 # 参数解析
 parser = argparse.ArgumentParser(description='Flask Application')
@@ -34,13 +35,15 @@ def login():
         # 从表单获取数据
         username = request.form.get('username')
         password = request.form.get('password')
+        user = get_user_data(username)
+        # conn = get_db_connection()
+        # cursor = conn.cursor(dictionary=True)
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-
-        # 查询用户信息
-        cursor.execute("SELECT * FROM user WHERE username = %s", (username,))
-        user = cursor.fetchone()
+        # # 查询用户信息
+        # cursor.execute("SELECT * FROM user WHERE username = %s", (username,))
+        # user = cursor.fetchone()
+        # cursor.close()
+        # conn.close()
 
         if user and checkpw(password.encode('utf-8'), user['password'].encode('utf-8')):
             # 将用户信息存储到会话中
@@ -49,20 +52,28 @@ def login():
             session['image_id'] = user['image_id']
             session['current_analysis_id'] = user['current_analysis_id']
             session['position'] = user['position']
+
+            resp = make_response(redirect(url_for('index')))
+            resp.set_cookie('access_token', str(user['id']), max_age=3600, httponly=True, secure=False)  
+            return resp
+
             flash('登录成功！', 'success')
-            return redirect(url_for('index'))
         else:
             flash('用户名或密码错误！', 'danger')
-        cursor.close()
-        conn.close()
-    return render_template('login.html')  # GET 请求返回登录页面
+    return render_template('login.html')  
 
 # 退出登录
 @app.route('/logout')
 def logout():
+    # 清除会话
     session.clear()
-    flash('您已成功退出登录。', 'info')
-    return redirect(url_for('login'))
+    
+    # 清除 Cookie
+    resp = make_response(redirect(url_for('login')))
+    resp.set_cookie('access_token', '', expires=0)  
+
+    flash('您已成功退出登录!', 'info')
+    return resp
 
 # 分发影像
 @app.route('/dispatch')
@@ -113,21 +124,9 @@ def index():
     if 'user_id' in session:
         user_id = session['user_id']
 
-        # 如果 current_analysis_id 为空
         if not session['current_analysis_id']:
-            conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
-            cursor.execute("""
-                SELECT * FROM image_data 
-                WHERE status = 'unlabeled' 
-                ORDER BY id ASC 
-                LIMIT 1
-            """)
-            image_data = cursor.fetchone()
-            cursor.close()
-            conn.close()
-            # print(image_data)
-
+            image_data = get_next_unlabeled_image(user_id)
+            
             if image_data:
                 image_id = image_data['id']
 
@@ -161,9 +160,15 @@ def index():
                         # 更新影像的状态
                         cursor.execute("""
                             UPDATE image_data 
-                            SET status = %s
+                            SET status = %s, user_id = %s
                             WHERE id = %s;
-                        """, ('labeling', image_id))
+                        """, ('labeling', session['user_id'], image_id))
+
+                        cursor.execute("""
+                            UPDATE image_analysis
+                            SET status = %s
+                            WHERE id = %s
+                            """, ('labeling', current_analysis_id))
                         
                         conn.commit()
                     except Exception as e:
@@ -182,16 +187,25 @@ def index():
                 abort(404, description="校对完成，暂无可分配影像！")
 
         if session['current_analysis_id']:
-            current_analysis_id = session['current_analysis_id']
+            # conn = get_db_connection()
+            # cursor = conn.cursor(dictionary=True)
+            # try:
+            #     cursor.execute("SELECT current_analysis_id FROM user WHERE id = %s", (session['user_id'],))
+            user_data = get_user_data(session['username'])
+            current_analysis_id = user_data['current_analysis_id']
+            # except Exception as e:
+            #     print(f"Database error: {e}")
+            # finally:
+            #     cursor.close()
+            #     conn.close()
+
             image_data = get_image_data(current_analysis_id)
 
             if image_data:
-                if not session['image_id']:
-                    session['image_id'] = image_data.get('image_id')
-                if not session['position']:
-                    session['position'] = get_new_position(current_analysis_id, session['image_id'])
+                session['image_id'] = image_data.get('image_id')
+                session['position'] = get_new_position(current_analysis_id, session['image_id'])
                 image_path = image_data.get('image_path')
-                return render_template('index.html', image_data=image_data, image_path=image_path)
+                return render_template('index.html', image_data=image_data, user_data=get_user_data(session['username']), image_path=image_path)
             else:
                 abort(404, description="未找到影像！")
         else:
@@ -203,6 +217,22 @@ def index():
 @app.route('/images/<int:data_id>')
 def image(data_id):
     if data_id:
+        user_data = get_user_data(session['username'])
+        # conn = get_db_connection()
+        # cursor = conn.cursor(dictionary=True)
+        # try:
+            # cursor.execute("SELECT current_analysis_id FROM user WHERE id = %s", (session['user_id'],))
+            # user_data = cursor.fetchone()
+        current_analysis_id = user_data['current_analysis_id']
+        if data_id not in {current_analysis_id, current_analysis_id + 1, current_analysis_id - 1}:
+            flash('您暂无权限访问！', 'danger')
+            return redirect(url_for('index'))
+        # except Exception as e:
+        #     print(f"Database error: {e}")
+        # finally:
+        #     cursor.close()
+        #     conn.close()
+
         image_data = get_image_data(data_id)
 
         if image_data['image_id'] == session['image_id']:
@@ -237,7 +267,7 @@ def image(data_id):
                     conn.close()
                 
                 # print(session)
-                return render_template('index.html', image_data=image_data, image_path=image_path)
+                return render_template('index.html', image_data=image_data, user_data=get_user_data(session['username']), image_path=image_path)
             else:
                 abort(404, description="未找到影像！")
 
@@ -261,15 +291,17 @@ def update_previous():
     else:
         new_answer = request.form['answer']  # 对于单选，只获取一个值
     image_id = request.form['image_id']
+    confidence_level = request.form['confidence_level']
 
+    # 更新数据库中的推理和答案
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("""
             UPDATE image_analysis
-            SET updated_question = %s, updated_rationale = %s, updated_answer = %s, status = 'labeled'
+            SET updated_answer = %s, status = 'labeled', confidence_level = %s
             WHERE id = %s
-        """, (new_question, new_rationale, new_answer, image_id))
+        """, (new_answer, confidence_level, image_id))
         conn.commit()
     except Exception as e:
         conn.rollback()
@@ -298,6 +330,7 @@ def update_next():
     else:
         new_answer = request.form['answer']  # 对于单选，只获取一个值
     image_id = request.form['image_id']
+    confidence_level = request.form['confidence_level']
 
     # 更新数据库中的推理和答案
     conn = get_db_connection()
@@ -305,9 +338,9 @@ def update_next():
     try:
         cursor.execute("""
             UPDATE image_analysis
-            SET updated_question = %s, updated_rationale = %s, updated_answer = %s, status = 'labeled'
+            SET updated_answer = %s, status = 'labeled', confidence_level = %s
             WHERE id = %s
-        """, (new_question, new_rationale, new_answer, image_id))
+        """, (new_answer, confidence_level, image_id))
         conn.commit()
     except Exception as e:
         conn.rollback()
@@ -330,6 +363,15 @@ def update_next():
 def page_not_found(e):
     referer_url = request.referrer
     return render_template('404.html', error_message=e.description, referer_url=referer_url), 404
+
+@app.before_request
+def check_access_token():
+    if request.path == url_for('login'):
+        return 
+    access_token = request.cookies.get('access_token')  # 从 Cookie 中获取令牌
+    if not access_token:
+        flash('请先登录！', 'warning')
+        return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=args.server_port, debug=True)
