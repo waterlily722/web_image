@@ -84,7 +84,7 @@ def dispatch():
     result = cursor.fetchone()
     cursor.close()
     conn.close()
-    return render_template('dispatch.html', data_id = result['current_analysis_id'])
+    return render_template('dispatch.html', data_id = result['current_analysis_id'], user_data=get_user_data(session['username']))
 
 @app.route('/dispatch_image', methods=['POST'])    
 def dispatch_image():
